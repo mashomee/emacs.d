@@ -1,48 +1,65 @@
-;;; org2nikola --- export html and meta data used by static blog like nikola from org file
+;;; org2nikola --- create HTML for static blog generator Nikola from Org
 
 ;; Copyright (C) 2012 Chen Bin
 ;; Author: Chen Bin <chenbin.sh@gmail.com>
 ;; URL: http://github.com/redguardtoo/org2nikola
 ;; Keywords: blog static html export org
-;; Version: 0.0.9
+;; Version: 0.1.4
 
 ;; This file is not part of GNU Emacs.
 
 ;; This file is free software (GPLv3 License)
 
-;;; Setup:
+;;; Commentary:
+
+;; Setup:
 ;;
 ;; (add-to-list 'load-path "~/.emacs.d/lisp/nikola")
 ;; (require 'org2nikola)
-;; (setq org2nikola-output-root-directory "~/projs/blog.binchen.org")
-;; ;; OPTIONAL
-;; (add-hook 'org2nikola-after-hook
-;;           (lambda (title slug)
-;;             (message "title=%s slug=%s" title slug)))
-
-;;; Usage:
+;; (setq org2nikola-output-root-directory "~/.config/nikola")
 ;;
-;;  M-x org2nikola-export-subtree
+;;
+;; Usage:
+;;   - `M-x org2nikola-export-subtree` to create meta data
+;;   - `nikola build' to create final html files
+;;
+;; You may `M-x org2nikola-rerender-published-posts' at least once
+;; if you haven't published all post on one computer.
+;;
+;; Press `C-c C-c' or `M-x org-ctrl-c-ctrl-c' to tag the post.
+;;
+;; You can `(setq org2nikola-use-verbose-metadata t)` because nikola7.7
+;; requires more verbose meta data.
+;;
+;;  Check https://github.com/redguardtoo/org2nikola for tips on
+;;  how to use git or FTP to upload HTML files.
 
 ;;; Code:
 (require 'org)
 
 (defvar org2nikola-output-root-directory nil)
 
-(defvar org2nikola-use-google-code-prettify nil)
+(defvar org2nikola-org-blog-directory nil)
+
+(defvar org2nikola-use-verbose-metadata nil
+  "Produce more verbose metadata required by new version of nikola 7.7+.
+`nikola plugin -i upgrade_metadata;nikola upgrade_metadata' to upgrade legacy metadata.")
+
+(defvar org2nikola-code-prettify-type "highlight.js"
+  "Renderred code for certain type. could be nil,
+\"google-prettify\", \"highlight.js\".")
 
 (defvar org2nikola-prettify-unsupported-language
   '(elisp "lisp"
-          emacs-lisp "lisp"))
+    emacs-lisp "lisp"))
 
 (defcustom org2nikola-after-hook nil
-  "hook after HTML files are created. title and slug are pass as parameters"
+  "Hook after HTML files are created. title and slug are pass as parameters."
   :type 'hook
   :group 'org2nikola)
 
 (defconst org2nikola-zh-char-table
-  '(
-    ("a" "阿" "啊" "呵" "腌" "嗄" "锕" "吖")
+  '(("a" "阿" "啊" "呵" "腌" "嗄" "锕" "吖")
     ("ai" "爱" "哀" "挨" "碍" "埃" "癌" "艾" "唉" "矮" "哎" "皑" "蔼" "隘" "暧" "霭" "捱" "嗳" "瑷" "嫒" "锿" "嗌" "砹")
     ("an" "安" "案" "按" "暗" "岸" "俺" "谙" "黯" "鞍" "氨" "庵" "桉" "鹌" "胺" "铵" "揞" "犴" "埯")
     ("ang" "昂" "肮" "盎")
@@ -447,36 +464,34 @@
     ("zuan" "赚" "钻" "攥" "纂" "躜" "缵")
     ("zui" "最" "罪" "嘴" "醉" "咀" "觜" "蕞")
     ("zun" "尊" "遵" "樽" "鳟" "撙")
-    ("zuo" "作" "做" "坐" "座" "左" "昨" "琢" "佐" "凿" "撮" "柞" "嘬" "怍" "胙" "唑" "笮" "阼" "祚" "酢")
-    ))
+    ("zuo" "作" "做" "坐" "座" "左" "昨" "琢" "佐" "凿" "撮" "柞" "嘬" "怍" "胙" "唑" "笮" "阼" "祚" "酢")))
 
 (defun org2nikola--zh-char-to-pinyin (ch)
   (catch 'break
-    (let ((i 0)
-          item
-          (s (char-to-string ch)))
+    (let* ((i 0)
+           item
+           (s (char-to-string ch)))
       (while (< i (length org2nikola-zh-char-table))
         (setq item (nth i org2nikola-zh-char-table))
         (if (member s (cdr item))
             (throw 'break (car item)))
-        (setq i (1+ i))
-        ))))
+        (setq i (1+ i))))))
 
 (defun org2nikola--char-to-string (ch)
-  (let ((chspc 32)
-        (chsq 39)
-        (ch0 48)
-        (ch9 57)
-        (cha 97)
-        (chz 122)
-        (chA 65)
-        (chZ 90)
-        (chdot 46)
-        (chminus 45)
-        (chunderscore 95)
-        (cjk-min 19968)
-        (cjk-max 40959)
-        rlt)
+  (let* ((chspc 32)
+         (chsq 39)
+         (ch0 48)
+         (ch9 57)
+         (cha 97)
+         (chz 122)
+         (chA 65)
+         (chZ 90)
+         (chdot 46)
+         (chminus 45)
+         (chunderscore 95)
+         (cjk-min 19968)
+         (cjk-max 40959)
+         rlt)
     (cond
      ((or (and (<= ch0 ch) (<= ch ch9))
           (and (<= cha ch) (<= ch chz))
@@ -490,32 +505,29 @@
       )
      ((or (= chspc ch) (= chsq ch) (= chdot ch))
       (setq rlt "-")))
-    rlt
-    ))
+    rlt))
 
 (defun org2nikola-trim-string (string)
   (replace-regexp-in-string "\\`[ \t\n]*" "" (replace-regexp-in-string "[ \t\n]*\\'" "" string)))
 
 (defun org2nikola-get-slug (str)
-  (let (slug )
-    (setq slug (mapconcat 'org2nikola--char-to-string str ""))
-    ;; clean slug a little bit
-    (setq slug (replace-regexp-in-string "\-\-+" "-" slug))
-    (setq slug (replace-regexp-in-string "^\-+" "" slug))
-    (setq slug (replace-regexp-in-string "\-+$" "" slug))
-    (setq slug (org2nikola-trim-string slug))
-    (setq slug (downcase slug))
-    slug))
+    (setq str (mapconcat 'org2nikola--char-to-string str ""))
+    ;; clean slug little bit
+    (setq str (replace-regexp-in-string "\-\-+" "-" str))
+    (setq str (replace-regexp-in-string "^\-+" "" str))
+    (setq str (replace-regexp-in-string "\-+$" "" str))
+    (setq str (org2nikola-trim-string str))
+    (setq str (downcase str))
+    str)
 
 (defun org2nikola-export-into-html-text ()
-  (let (html-text b e)
-
+  (let* (html-text b e)
     (save-excursion
       (org-mark-element)
       (forward-line) ;; donot export title
       (setq b (region-beginning))
-      (setq e (region-end))
-      )
+      (setq e (region-end)))
+
     ;; org-export-as will detect active region and narrow to the region
     (save-excursion
       (setq html-text
@@ -535,41 +547,33 @@
   lang)
 
 (defun org2nikola-guess-output-html-directory ()
-  (let (rlt)
-    (setq rlt (concat (file-name-as-directory org2nikola-output-root-directory) "posts"))
+  (let* ((rlt (concat (file-name-as-directory org2nikola-output-root-directory)
+                      "posts")))
     (if (not (file-exists-p (expand-file-name rlt)))
         (make-directory (expand-file-name rlt)))
-    (file-name-as-directory rlt)
-    ))
+    (file-name-as-directory rlt)))
 
 (defun org2nikola-guess-output-image-directory ()
-  (let (rlt)
-    (setq rlt (concat (file-name-as-directory org2nikola-output-root-directory) "files/wp-content"))
+  (let* ((rlt (concat (file-name-as-directory org2nikola-output-root-directory)
+                      "files/wp-content")))
     (if (not (file-exists-p (expand-file-name rlt)))
         (make-directory (expand-file-name rlt)))
-    (file-name-as-directory rlt)
-    ))
+    (file-name-as-directory rlt)))
 
 (defun org2nikola-get-full-url (local-file org-directory)
-  (let (final-url source-file-full-path dst-file-full-path)
-    (setq source-file-full-path (file-truename (concat org-directory local-file)))
-    (setq dst-file-full-path (concat
+  (let* ((source-file-full-path (file-truename (concat org-directory local-file)))
+         (dst-file-full-path (concat
                               (org2nikola-guess-output-image-directory)
-                              (file-name-nondirectory source-file-full-path)
-                              ))
+                              (file-name-nondirectory source-file-full-path)))
+         (final-url (concat "/wp-content/" (file-name-nondirectory local-file))))
     (copy-file source-file-full-path dst-file-full-path t)
-    (setq final-url (concat "/wp-content/" (file-name-nondirectory local-file)))
-    final-url
-    ))
+    final-url))
 
-;; TODO, all we need is set a flag to upload or not upload image again
-;; Seriously, I don't care individual image status.
 (defun org2nikola-replace-urls (text org-directory)
-  "Uploads files, if any in the html, and changes their links"
-
-  (let ((file-all-urls nil)
-        file-name file-web-url beg
-        (file-regexp "<a href=\"\\(.?*\\)\"\\|<img src=\"\\(.*?\\)\""))
+  "Render media files in HTML and change their links."
+  (let* ((file-all-urls nil)
+         file-name file-web-url beg
+         (file-regexp "<a href=\"\\(.?*\\)\"\\|<img src=\"\\(.*?\\)\""))
     (save-excursion
       (while (string-match file-regexp text beg)
         (setq file-name
@@ -589,24 +593,27 @@
               (setq file-web-url (org2nikola-get-full-url file-name org-directory))
               (setq file-all-urls
                     (append file-all-urls (list (cons
-                                                 file-name file-web-url))))
-              ))
-        )
+                                                 file-name file-web-url)))))))
       ;; replace urls in file-all-urls
       (dolist (file file-all-urls)
         (setq text (replace-regexp-in-string
                     (concat "\\(<a href=\"\\|<img src=\"\\)\\(file://\\)*"
                             (regexp-quote (car file))
-                            "\\(\" +alt=\"\\).*$"
-                            )
-                    (concat "\\1" (cdr file) "\\3" (file-name-nondirectory (cdr file)) "\" />") text))))
+                            "\\(\" +alt=\"\\).*$")
+                    (concat "\\1"
+                            (cdr file)
+                            "\\3"
+                            (file-name-nondirectory
+                             (cdr file))
+                            "\" />")
+                    text))))
     text))
 
 (defun org2nikola-replace-pre (html)
   "Replace pre blocks with sourcecode shortcode blocks.
-shamelessly copied from org2blog/wp-replace-pre()"
+Shamelessly copied from org2blog/wp-replace-pre()."
   (save-excursion
-    (let (pos code lang info params header code-start code-end html-attrs pre-class)
+    (let* (pos code lang info params header code-start code-end html-attrs pre-class)
       (with-temp-buffer
         (insert html)
         (goto-char (point-min))
@@ -634,84 +641,85 @@ shamelessly copied from org2blog/wp-replace-pre()"
               (delete-region code-start code-end)
               ;; Stripping out all the code highlighting done by htmlize
               (setq code (replace-regexp-in-string "<.*?>" "" code))
-              ;; class linenums will add stripes which will destory the 3rd party skins
-              (insert (concat "\n<pre class=\"prettyprint lang-"
-                              (org2nikola-fix-unsupported-language lang)
-                              "\">\n"
-                              code
-                              "</pre>\n"))
-              )))
-
+              (cond
+               ((string= org2nikola-code-prettify-type "google-prettify")
+                ;; google prettify
+                ;; class linenums will add stripes which will destory the 3rd party skins
+                (insert (concat "\n<pre class=\"prettyprint lang-"
+                                (org2nikola-fix-unsupported-language lang)
+                                "\">"
+                                code
+                                "</pre>\n"))
+                )
+               (t
+                ;; default is highlight.js, it's the best!
+                (insert (concat "\n<pre><code class=\"lang-"
+                                (org2nikola-fix-unsupported-language lang)
+                                "\">"
+                                code
+                                "</code></pre>\n")))))))
         ;; Get the new html!
-        (setq html (buffer-substring-no-properties (point-min) (point-max))))
-      ))
+        (setq html (buffer-substring-no-properties (point-min) (point-max))))))
   html)
 
 (defun org2nikola-format-time-string ()
-  "UTC time string"
+  "UTC time string."
   (format-time-string "%Y-%m-%d %T" (org-current-time) t))
 
-;;;###autoload
-(defun org2nikola-export-subtree ()
-  "export current first level subtree into html located at Nikola's directory"
-  (interactive)
-  (let ((org-directory default-directory)
-        html-file
-        meta-file
-        tags
-        title
-        post-slug
-        post-date
-        update-date
-        html-text)
+(defun org2nikola--existing-slug ()
+  "Return post slug or nil."
+  (let* ((post-slug (org-entry-get (point) "POST_SLUG")))
+    (if (and post-slug (< 0 (length post-slug)))
+        post-slug)))
 
-    ;; just goto the root element
-    (condition-case nil
-        (outline-up-heading 8)
-      (error
-       (message "in the beginning ...")))
-
-    (setq post-date (org-entry-get (point) "POST_DATE"))
+(defun org2nikola--render-subtree (&optional donot-publish)
+  "Render current subtree."
+  (let* ((org-directory default-directory)
+         html-file
+         ;; set title and tags
+         (title (nth 4 (org-heading-components)))
+         (tags (mapcar 'org-no-properties (org-get-tags-at (point) nil)))
+         (post-slug (org2nikola--existing-slug))
+         (meta-file (concat (file-name-as-directory (org2nikola-guess-output-html-directory))
+                            post-slug
+                            ".meta"))
+         (html-file (concat (file-name-as-directory (org2nikola-guess-output-html-directory))
+                            post-slug
+                            ".wp"))
+         ;; set POST_DATE if it does not exist
+         (post-date (org-entry-get (point) "POST_DATE"))
+         ;; set UPDATE_DATE always! Use full ISO 8601 format
+         (update-date (org2nikola-format-time-string))
+         html-text)
     (unless (and post-date (< 8 (length post-date)))
       ;; full ISO 8601 format
       (setq post-date (org2nikola-format-time-string))
       (org-entry-put (point) "POST_DATE" post-date))
 
-    ;; full ISO 8601 format
-    (setq update-date (org2nikola-format-time-string))
     (org-entry-put (point) "UPDATE_DATE" update-date)
 
-    (setq title (nth 4 (org-heading-components)))
-    (setq tags (mapcar 'org-no-properties (org-get-tags-at (point) nil)))
-
-    (setq post-slug (org-entry-get (point) "POST_SLUG"))
-    (unless (and post-slug (< 0 (length post-slug)))
+    ;; set POST_SLUG if its does not exist
+    (unless post-slug
       (setq post-slug (org2nikola-get-slug title))
       (org-entry-put (point) "POST_SLUG" post-slug))
 
-    ;; nikola root directory must exist
-    (unless (and org2nikola-output-root-directory (file-directory-p org2nikola-output-root-directory))
-      (setq org2nikola-output-root-directory (read-directory-name "Nikola root directory:")))
-
     ;; meta file
-    (setq meta-file (concat (file-name-as-directory (org2nikola-guess-output-html-directory)) post-slug ".meta"))
     (with-temp-file meta-file
-      (insert (concat title "\n"
-                      post-slug "\n"
-                      post-date "\n"
-                      (mapconcat 'identity tags ",")
-                      )))
+      (insert (format (if org2nikola-use-verbose-metadata ".. title: %s\n.. slug: %s\n.. date: %s\n.. tags: %s"
+                        "%s\n%s\n%s\n%s")
+                      title
+                      post-slug
+                      post-date
+                      (mapconcat 'identity tags ","))))
 
     ;; html file
-    (setq html-file (concat (file-name-as-directory (org2nikola-guess-output-html-directory)) post-slug ".wp"))
     (setq html-text (org2nikola-export-into-html-text))
 
-    (when org2nikola-use-google-code-prettify
+    (when org2nikola-code-prettify-type
       (save-excursion
-        (setq html-text (org2nikola-replace-pre html-text))
-        ))
+        (setq html-text (org2nikola-replace-pre html-text))))
 
-    ;; post content should not contain title
+    ;; post content should NOT contain title
     (setq html-text (replace-regexp-in-string "<h2  id=\"sec-1\">.*<\/h2>" "" html-text))
     (setq html-text (replace-regexp-in-string "<h3  id=\"sec-1\">.*<\/h3>" "" html-text))
     (setq html-text (org2nikola-replace-urls html-text org-directory))
@@ -719,6 +727,48 @@ shamelessly copied from org2blog/wp-replace-pre()"
     (with-temp-file html-file
       (insert html-text))
 
-    (run-hook-with-args 'org2nikola-after-hook title post-slug)))
+    (unless donot-publish
+      (run-hook-with-args 'org2nikola-after-hook title post-slug))))
+
+;;;###autoload
+(defun org2nikola-export-subtree ()
+  "Export current first level subtree into HTML."
+  (interactive)
+  ;; just goto the root element
+  (condition-case nil
+      (outline-up-heading 8)
+    (error
+     (message "at the beginning ...")))
+
+  ;; nikola root directory must exist
+  (unless (and org2nikola-output-root-directory (file-directory-p org2nikola-output-root-directory))
+    (setq org2nikola-output-root-directory (read-directory-name "Nikola root directory:")))
+
+  ;; should be nil
+  (org2nikola--render-subtree))
+
+;;;###autoload
+(defun org2nikola-rerender-published-posts ()
+  "Re-render all old published posts."
+  (interactive)
+  (unless (and org2nikola-org-blog-directory
+               (file-directory-p org2nikola-org-blog-directory))
+    (setq org2nikola-org-blog-directory
+          (read-directory-name "Org blog directory:")))
+
+  (dolist (f (directory-files org2nikola-org-blog-directory t))
+    (when (and (not (file-directory-p f))
+               (string-match-p "\.org$" f))
+      ;; need setup default-directory to get absolute path of image embedded in org file
+      (let* ((default-directory (file-name-directory f)))
+        (with-temp-buffer
+          ;; need make sure is org-mode is load loaded
+          (insert-file-contents f)
+          (org-mode)
+          (goto-char (point-min))
+          (while (search-forward-regexp "^\* [^ ]+" (point-max) t)
+            (if (org2nikola--existing-slug)
+                (org2nikola--render-subtree t))))))))
 
 (provide 'org2nikola)
+;;; org2nikola.el ends here

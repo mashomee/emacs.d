@@ -10,7 +10,6 @@
          (bf (gud-find-file true-file)))
     (with-current-buffer bf
       (move-overlay ov (line-beginning-position) (line-beginning-position 2)
-                    ;;(move-overlay ov (line-beginning-position) (line-end-position)
                     (current-buffer)))))
 
 (defun gud-kill-buffer ()
@@ -29,10 +28,6 @@
   (hack-gud-mode))
 
 (defadvice select-window-by-number (after select-window-by-number-after activate)
-  (hack-gud-mode))
-
-;; from switch-window is from 3rd party plugin switch windows.el
-(defadvice switch-window (after switch-window-after activate)
   (hack-gud-mode))
 
 ;; windmove-do-window-select is from windmove.el

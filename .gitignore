@@ -1,10 +1,15 @@
+.depend
+pyim/
+anaconda-mode/
 .wg-file.el
 /url/cache
 /.emacs.desktop
 /auto-save-list
 /.session
+/session.*
 /custom.el
 *.elc
+company-statistics-cache.el
 CVS
 .svn
 *_flymake.el
@@ -46,3 +51,9 @@ history
 recentf
 places
 ido.last
+projectile.cache
+.orig
+.unpacked
+srecode-map.el
+custom-set-variables.el
+.smex-items

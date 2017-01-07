@@ -1,6 +1,6 @@
 ;;; evil-matchit-cmake.el ---cmake (ruby/lua) plugin of evil-matchit
 
-;; Copyright (C) 2014  Chen Bin <chenbin.sh@gmail.com>
+;; Copyright (C) 2014-2016 Chen Bin <chenbin.sh@gmail.com>
 
 ;; Author: Chen Bin <chenbin.sh@gmail.com>
 
@@ -37,11 +37,11 @@
 
 ;; CMake (http://www.cmake.org) syntax
 (defvar evilmi-cmake-match-tags
-  '((("if" "IF") ("elseif" "ELSEIF" "else" "ELSE") ("endif" "ENDIF") "MONOGAMY")
-    (("foreach" "FOREACH") () ("endforeach" "ENDFOREACH") "MONOGAMY")
-    (("macro" "MACRO") () ("endmacro" "ENDMACRO") "MONOGAMY")
-    (("while" "WHILE") () ("endwhile" "ENDWHILE") "MONOGAMY")
-    (("function" "FUNCTION") () ("endfunction" "ENDFUNCTION") "MONOGAMY")
+  '((("if") ("elseif" "else") ("endif") "MONOGAMY")
+    (("foreach") () ("endforeach") "MONOGAMY")
+    (("macro") () ("endmacro") "MONOGAMY")
+    (("while") () ("endwhile") "MONOGAMY")
+    (("function") () ("endfunction") "MONOGAMY")
     ))
 
 ;;;###autoload

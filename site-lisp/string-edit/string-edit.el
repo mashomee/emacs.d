@@ -27,6 +27,14 @@
 
 (require 'dash)
 
+(defvar se/original)
+(defvar se/original-buffer)
+
+(defvar string-edit-at-point-hook ()
+  "Hook to run just before enabling `string-edit-mode'.
+This hook provides an opportunity to enable a custom major mode
+before the minor mode is enabled.")
+
 ;;;###autoload
 (defun string-edit-at-point ()
   (interactive)
@@ -41,6 +49,7 @@
       (funcall (se/aget :cleanup original))
       (enlarge-window (1- (line-number-at-pos (point-max))))
       (se/guess-at-major-mode)
+      (run-hooks 'string-edit-at-point-hook)
       (string-edit-mode 1)
       (set (make-local-variable 'se/original) original)
       (set (make-local-variable 'se/original-buffer) original-buffer)
@@ -136,8 +145,11 @@
   (cdr (assoc key map)))
 
 (defun se/current-quotes-char ()
-  "The char that is the current quote delimiter"
-  (nth 3 (syntax-ppss)))
+  "The char that is the current quote delimiter, or nil if not in a string."
+  (let ((delimiter (nth 3 (syntax-ppss))))
+    (cond ((stringp delimiter) delimiter)
+          ;; `syntax-ppss' can return t meaning 'a generic string delimiter'.
+          (delimiter ?\"))))
 
 (defalias 'se/point-inside-string-p 'se/current-quotes-char)
 

@@ -1,6 +1,6 @@
 ;;; evil-matchit-ruby.el ---ruby plugin of evil-matchit
 
-;; Copyright (C) 2014  Chen Bin <chenbin.sh@gmail.com>
+;; Copyright (C) 2014-2016 Chen Bin <chenbin.sh@gmail.com>
 
 ;; Author: Chen Bin <chenbin.sh@gmail.com>
 
@@ -33,7 +33,9 @@
 
 (defvar evilmi-ruby-extract-keyword-howtos
   '(("^[ \t]*\\([a-z]+\\)\\( .*\\| *\\)$" 1)
-    ("^.* \\(do\\) |[a-z0-9A-Z,|]+|$" 1)
+    ("^.* \\(do\\) |[a-z0-9A-Z_, ]+|$" 1)
+    ("^.* \\(do\\) *$" 1)
+    ("^.* \\(end\\)\\..*$" 1)
     ))
 
 (defvar evilmi-ruby-match-tags

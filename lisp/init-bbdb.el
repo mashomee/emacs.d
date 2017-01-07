@@ -1,13 +1,12 @@
 (add-hook 'message-mode-hook
           '(lambda ()
-             (flyspell-mode t)
+             (enable-flyspell-mode-conditionally)
              (bbdb-initialize 'message)
              (bbdb-initialize 'gnus)
              (local-set-key "<TAB>" 'bbdb-complete-name)))
 
 ;; import Gmail contacts in vcard format into bbdb
 (setq gmail2bbdb-bbdb-file "~/.bbdb")
-(autoload 'gmail2bbdb-import-file "gmail2bbdb" "" t)
 
 (add-hook 'bbdb-initialize-hook
           '(lambda ()
@@ -47,5 +46,9 @@
              ;; just remove some warning since bbdb package hook the mail-mode
              (setq compose-mail-user-agent-warnings nil)
              ))
+
+(eval-after-load 'gmail2bbdb
+  '(progn
+     (setq gmail2bbdb-exclude-people-without-name t)))
 
 (provide 'init-bbdb)

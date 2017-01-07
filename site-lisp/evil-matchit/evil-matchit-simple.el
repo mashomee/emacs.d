@@ -1,6 +1,7 @@
 ;;; evil-matchit-simple.el --- simple match plugin of evil-matchit
 
-;; Copyright (C) 2014  Chen Bin <chenbin.sh@gmail.com>
+;; Copyright (C) 2014-2016 Chen Bin <chenbin.sh@gmail.com>
+
 
 ;; Author: Chen Bin <chenbin.sh@gmail.com>
 
@@ -26,6 +27,7 @@
 
 ;;; Code:
 
+(require 'evil-matchit-sdk)
 (require 'evil-matchit)
 
 (defun evilmi--simple-find-open-brace (cur-line)
@@ -37,54 +39,54 @@
         (setq rlt 1)
       (save-excursion
         (forward-line)
-        (setq cur-line (buffer-substring-no-properties
-                        (line-beginning-position) (line-end-position)))
+        (setq cur-line (evilmi-sdk-curline))
         (if (string-match "^[ \t]*{ *$" cur-line)
-            (setq rlt 2)
-          )
-        )
-      )
+            (setq rlt 2))
+        ))
     rlt))
 
 ;;;###autoload
 (defun evilmi-simple-get-tag ()
-  (let (p
-        forward-line-num
-        rlt
-        (cur-line (buffer-substring-no-properties
-                   (line-beginning-position) (line-end-position)))
-        )
+  (let* (forward-line-num
+         ;; Only handle open tag
+         (tmp (evilmi--get-char-under-cursor))
+         (ch (if tmp (car tmp)))
+         rlt)
 
-    ;; only handle open tag
-    (if (not (memq (following-char) (string-to-list "{[(}}])")))
-        (if (setq forward-line-num (evilmi--simple-find-open-brace cur-line))
-            (when forward-line-num
-              (setq p (line-beginning-position))
-              (forward-line (1- forward-line-num))
-              (search-forward "{" nil nil)
-              (backward-char)
-              (setq rlt (list p))
-              )
-          )
-      (setq rlt (list (point)))
-      )
+    (if evilmi-debug (message "evilmi-simple-get-tag called => %s" ch))
+
+    (cond
+     ;; In evil-visual-state, the (preceding-char) is actually the character under cursor
+     ((not (evilmi--char-is-simple ch))
+      (when (setq forward-line-num (evilmi--simple-find-open-brace (evilmi-sdk-curline)))
+        (setq rlt (list (line-beginning-position)))
+        ;; need handle case "if () \n { ... }".
+        ;; move cursor over "{", prepare for `evil-jump-item'
+        (forward-line (1- forward-line-num))
+        (search-forward "{" nil nil)
+        (backward-char)))
+     (t
+      ;; use evil's own evilmi--simple-jump
+      (setq rlt (list (point)))))
+
+    (if (and evilmi-debug rlt) (message "evilmi-simple-get-tag called rlt=%s" rlt))
     rlt))
 
 ;;;###autoload
 (defun evilmi-simple-jump (rlt NUM)
-  (let (cur-line)
-    (when rlt
-      (evil-jump-item)
+  (when rlt
+    (if evilmi-debug (message "evilmi-simple-jump called"))
 
-      (setq cur-line (buffer-substring-no-properties
-                      (line-beginning-position)
-                      (line-end-position)))
-      ;; hack for javascript
-      (if (string-match "^[ \t]*})(.*)\; *$" cur-line)
-          (line-end-position)
-        (1+ (point))
-        )
-      )
-    ))
+    ;; In latex-mode `scan-sexps' does NOT work properly between "[]"
+    ;; so we have to fallback to evil's API.
+    (if (memq major-mode '(latex-mode))
+        (evil-jump-item)
+      (evilmi--simple-jump))
+
+    ;; hack for javascript
+    (if (string-match "^[ \t]*})\\((.*)\\)?\; *$"
+                      (evilmi-sdk-curline))
+        (line-end-position)
+      (1+ (point)))))
 
 (provide 'evil-matchit-simple)

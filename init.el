@@ -85,7 +85,7 @@
   (require 'init-hippie-expand)
   (require 'init-windows)
   (require 'init-sessions)
-  (require 'init-git)
+  ;;(require 'init-git)
   (require 'init-crontab)
   (require 'init-markdown)
   (require 'init-erlang)

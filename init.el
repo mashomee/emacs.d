@@ -79,7 +79,7 @@
   (require 'init-hippie-expand)
   (require 'init-windows)
   (require 'init-sessions)
-  (require 'init-git)
+  ;;(require 'init-git)
   (require 'init-crontab)
   (require 'init-markdown)
   (require 'init-erlang)
@@ -94,8 +94,8 @@
   (require 'init-yasnippet)
   ;; Use bookmark instead
   (require 'init-cc-mode)
-  (require 'init-gud)
-  (require 'init-linum-mode)
+  ;;(require 'init-gud)
+  ;;(require 'init-linum-mode)
   ;; (require 'init-gist)
   (require 'init-moz)
   (require 'init-gtags)
@@ -151,7 +151,8 @@
   ;; my personal setup, other major-mode specific setup need it.
   ;; It's dependent on init-site-lisp.el
   (if (file-exists-p "~/.custom.el") (load-file "~/.custom.el")))
-
+(if (file-exists-p (concat user-emacs-directory "custom.el"))
+    (load (concat user-emacs-directory "custom.el")))
 ;; @see https://www.reddit.com/r/emacs/comments/4q4ixw/how_to_forbid_emacs_to_touch_configuration_files/
 (setq custom-file (concat user-emacs-directory "custom-set-variables.el"))
 (load custom-file 'noerror)

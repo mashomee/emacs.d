@@ -10,4 +10,4 @@
 
 
 
-(message ".emacs.d/custom.el loaded sucess!!")
+(message ".emacs.d/mycustom.el loaded sucess!!")
